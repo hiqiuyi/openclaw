@@ -121,6 +121,7 @@ export function renderMessageGroup(
     basePath?: string;
     contextWindow?: number | null;
     onDelete?: () => void;
+    execDetailMaxLength?: number;
   },
 ) {
   const normalizedRole = normalizeRoleForGrouping(group.role);
@@ -168,6 +169,7 @@ export function renderMessageGroup(
               isStreaming: group.isStreaming && index === group.messages.length - 1,
               showReasoning: opts.showReasoning,
               showToolCalls: opts.showToolCalls ?? true,
+              execDetailMaxLength: opts.execDetailMaxLength,
             },
             opts.onOpenSidebar,
           ),
@@ -551,6 +553,7 @@ function renderMessageImages(images: ImageBlock[]) {
 function renderCollapsedToolCards(
   toolCards: ToolCard[],
   onOpenSidebar?: (content: string) => void,
+  execDetailMaxLength?: number,
 ) {
   const calls = toolCards.filter((c) => c.kind === "call");
   const results = toolCards.filter((c) => c.kind === "result");
@@ -571,7 +574,7 @@ function renderCollapsedToolCards(
         <span class="chat-tools-summary__names">${summaryLabel}</span>
       </summary>
       <div class="chat-tools-collapse__body">
-        ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}
+        ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar, execDetailMaxLength))}
       </div>
     </details>
   `;
@@ -638,7 +641,12 @@ function renderExpandButton(markdown: string, onOpenSidebar: (content: string) =
 
 function renderGroupedMessage(
   message: unknown,
-  opts: { isStreaming: boolean; showReasoning: boolean; showToolCalls?: boolean },
+  opts: {
+    isStreaming: boolean;
+    showReasoning: boolean;
+    showToolCalls?: boolean;
+    execDetailMaxLength?: number;
+  },
   onOpenSidebar?: (content: string) => void,
 ) {
   const m = message as Record<string, unknown>;
@@ -673,7 +681,7 @@ function renderGroupedMessage(
     .join(" ");
 
   if (!markdown && hasToolCards && isToolResult) {
-    return renderCollapsedToolCards(toolCards, onOpenSidebar);
+    return renderCollapsedToolCards(toolCards, onOpenSidebar, opts.execDetailMaxLength);
   }
 
   // Suppress empty bubbles when tool cards are the only content and toggle is off
@@ -733,7 +741,9 @@ function renderGroupedMessage(
                         ${unsafeHTML(toSanitizedMarkdownHtml(markdown))}
                       </div>`
                     : nothing}
-                ${hasToolCards ? renderCollapsedToolCards(toolCards, onOpenSidebar) : nothing}
+                ${hasToolCards
+                  ? renderCollapsedToolCards(toolCards, onOpenSidebar, opts.execDetailMaxLength)
+                  : nothing}
               </div>
             </details>
           `
@@ -757,7 +767,9 @@ function renderGroupedMessage(
                     ${unsafeHTML(toSanitizedMarkdownHtml(markdown))}
                   </div>`
                 : nothing}
-            ${hasToolCards ? renderCollapsedToolCards(toolCards, onOpenSidebar) : nothing}
+            ${hasToolCards
+              ? renderCollapsedToolCards(toolCards, onOpenSidebar, opts.execDetailMaxLength)
+              : nothing}
           `}
     </div>
   `;

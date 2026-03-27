@@ -1025,6 +1025,7 @@ export function renderChat(props: ChatProps) {
                 basePath: props.basePath,
                 contextWindow:
                   activeSession?.contextTokens ?? props.sessions?.defaults?.contextTokens ?? null,
+                execDetailMaxLength: activeSession?.verboseLimit,
                 onDelete: () => {
                   deleted.delete(item.key);
                   requestUpdate();
