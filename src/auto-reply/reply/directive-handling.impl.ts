@@ -4,6 +4,7 @@ import {
   resolveSessionAgentId,
 } from "../../agents/agent-scope.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
+import { requestLiveSessionModelSwitch } from "../../agents/live-model-switch.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { DEFAULT_VERBOSE_LIMIT } from "../../agents/tool-display-exec.js";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -337,6 +338,7 @@ export async function handleDirectiveOnly(
     directives.elevatedLevel !== undefined &&
     elevatedEnabled &&
     elevatedAllowed;
+  let modelSelectionUpdated = false;
   const shouldPersistSessionEntry =
     (directives.hasThinkDirective && Boolean(directives.thinkLevel)) ||
     (directives.hasFastDirective && directives.fastMode !== undefined) ||
@@ -399,11 +401,12 @@ export async function handleDirectiveOnly(
       }
     }
     if (modelSelection) {
-      applyModelOverrideToSessionEntry({
+      const applied = applyModelOverrideToSessionEntry({
         entry: sessionEntry,
         selection: modelSelection,
         profileOverride,
       });
+      modelSelectionUpdated = applied.updated;
     }
     if (directives.hasQueueDirective && directives.queueReset) {
       delete sessionEntry.queueMode;
@@ -429,6 +432,17 @@ export async function handleDirectiveOnly(
     if (storePath) {
       await updateSessionStore(storePath, (store) => {
         store[sessionKey] = sessionEntry;
+      });
+    }
+    if (modelSelection && modelSelectionUpdated) {
+      requestLiveSessionModelSwitch({
+        sessionEntry,
+        selection: {
+          provider: modelSelection.provider,
+          model: modelSelection.model,
+          authProfileId: profileOverride,
+          authProfileIdSource: profileOverride ? "user" : undefined,
+        },
       });
     }
   }
